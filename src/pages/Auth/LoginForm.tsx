@@ -19,11 +19,9 @@ export default function LoginForm() {
     const data = await response.json();
 
     if (response.ok) {
+      localStorage.setItem("token", data.access);
       setMensaje("¡Login exitoso!");
-      // Aquí puedes guardar el token o el estado de autenticación
-      console.log("Login exitoso:", data);
-
-      // Aquí puedes redirigir al usuario o guardar el estado de login
+      window.location.href = "/home";
     } else {
       setMensaje(data.message || "Error al iniciar sesión");
     }

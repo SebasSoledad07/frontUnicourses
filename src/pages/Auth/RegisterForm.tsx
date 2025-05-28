@@ -1,15 +1,36 @@
 import { useState } from "react";
 
+const interestsList: string[] = [
+  "Mathematics",
+  "Science",
+  "Programming",
+  "Art",
+  "Music",
+  "Sports",
+  "History",
+  "Literature",
+  "Languages",
+];
+
 export default function RegisterForm() {
   const [fullName, setFull] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [mensaje, setMensaje] = useState("");
+
+  // Función para alternar intereses
+  const toggleInterest = (interest: string) => {
+    setSelectedInterests((prev) =>
+      prev.includes(interest)
+        ? prev.filter((i) => i !== interest)
+        : [...prev, interest]
+    );
+  };
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMensaje(""); // Reiniciar mensaje
-
     try {
       const response = await fetch("http://localhost:8000/api/register/", {
         method: "POST",
@@ -17,9 +38,10 @@ export default function RegisterForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fullName,
+          fullname: fullName,
           email,
           password,
+          intereses: selectedInterests, // <-- enviamos intereses aquí
         }),
       });
 
@@ -27,11 +49,14 @@ export default function RegisterForm() {
 
       if (response.ok) {
         setMensaje("Usuario registrado con éxito");
+        console.log("Registro exitoso:", data);
+        window.location.href = "/login";
       } else {
         setMensaje(data.message || data.error || "Error al registrar");
       }
     } catch (error) {
       setMensaje("Error al conectar con el servidor.");
+      console.log("no da", error);
       console.error("Error:", error);
     }
   };
@@ -83,7 +108,7 @@ export default function RegisterForm() {
                 <label className="block text-sm">Nombres y Apellidos</label>
                 <input
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="Ingrese su nombre completo"
                   value={fullName}
                   onChange={(e) => setFull(e.target.value)}
                   required
@@ -94,7 +119,7 @@ export default function RegisterForm() {
                 <label className="block text-sm">Correo institucional</label>
                 <input
                   type="email"
-                  placeholder="your.email@school.edu"
+                  placeholder="tu.email@escuela.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -105,15 +130,39 @@ export default function RegisterForm() {
                 <label className="block text-sm">Contraseña</label>
                 <input
                   type="password"
-                  placeholder="Create a password"
+                  placeholder="Crea una contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="w-full mt-1 px-3 py-2 border rounded outline-none"
                 />
               </div>
+
+              {/* Intereses */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Selecciona tus intereses
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {interestsList.map((interest) => (
+                    <button
+                      key={interest}
+                      type="button"
+                      onClick={() => toggleInterest(interest)}
+                      className={`px-3 py-2 rounded-md border ${
+                        selectedInterests.includes(interest)
+                          ? "bg-blue-100 text-blue-600 border-blue-400"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {interest}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="text-sm text-gray-600">
-                <input type="checkbox" className="mr-2" />
+                <input type="checkbox" className="mr-2" required />
                 Acepto las{" "}
                 <a href="#" className="text-blue-600 underline">
                   Condiciones de servicio
@@ -123,15 +172,27 @@ export default function RegisterForm() {
                   Política de privacidad
                 </a>
               </div>
-              <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 ">
-                Create Account
+
+              <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                Crear cuenta
               </button>
-              {mensaje && <p>{mensaje}</p>}
+
+              {mensaje && (
+                <p
+                  className={`mt-2 text-center ${
+                    mensaje.includes("éxito")
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {mensaje}
+                </p>
+              )}
             </form>
             <p className="mt-4 text-sm text-center">
-              ¿Ya tenias una cuenta?{" "}
+              ¿Ya tienes una cuenta?{" "}
               <a href="/login" className="text-blue-600 hover:underline">
-                Sign In
+                Inicia sesión
               </a>
             </p>
           </div>
@@ -143,16 +204,16 @@ export default function RegisterForm() {
         <p>© 2025 UniCourses. All rights reserved.</p>
         <div className="mt-2 space-x-4">
           <a href="#" className="hover:underline">
-            Terms
+            Términos
           </a>
           <a href="#" className="hover:underline">
-            Privacy
+            Privacidad
           </a>
           <a href="#" className="hover:underline">
-            Help Center
+            Centro de ayuda
           </a>
           <a href="#" className="hover:underline">
-            Contact
+            Contacto
           </a>
         </div>
       </footer>

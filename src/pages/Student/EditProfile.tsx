@@ -1,44 +1,76 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
-const interestsList = [
+const interestsList: string[] = [
+  "Mathematics",
+  "Science",
   "Programming",
-  "Data Science",
-  "Artificial Intelligence",
-  "Web Development",
-  "Cybersecurity",
-  "Mobile Development",
+  "Art",
+  "Music",
+  "Sports",
+  "History",
+  "Literature",
+  "Languages",
 ];
 
-export default function EditProfile() {
-  const navigate = useNavigate();
+export default function PerfilUsuario() {
   const [profile, setProfile] = useState({
-    firstName: "Sarah",
-    lastName: "Johnson",
-    careerInterest: "Computer Science",
-    interests: ["Programming", "Web Development"],
+    fullname: "",
+    intereses: [] as string[],
+    career_interest: "", // nuevo campo
   });
 
-  const toggleInterest = (interest: string) => {
-    setProfile((prev) => ({
-      ...prev,
-      interests: prev.interests.includes(interest)
-        ? prev.interests.filter((i) => i !== interest)
-        : [...prev.interests, interest],
-    }));
-  };
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/perfil/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        // Asumimos que el backend retorna "first_name" y no "fullname"
+        setProfile({
+          fullname: data.fullname || data.first_name || "",
+          intereses: data.intereses || [],
+          career_interest: data.career_interest || "",
+        });
+      });
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const toggleInterest = (interest: string) => {
+    setProfile((prev) => {
+      const intereses = prev.intereses.includes(interest)
+        ? prev.intereses.filter((i) => i !== interest)
+        : [...prev.intereses, interest];
+      return { ...prev, intereses };
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Aquí puedes enviar los datos a tu backend
-    console.log("Saving profile...", profile);
-    navigate("/student-profile");
+    fetch("http://localhost:8000/api/perfil/", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        fullname: profile.fullname,
+        intereses: profile.intereses,
+        career_interest: profile.career_interest,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => alert(data.message || "Perfil actualizado correctamente"))
+      .catch(() => alert("Error al actualizar el perfil"));
   };
 
   return (
@@ -48,53 +80,28 @@ export default function EditProfile() {
         onSubmit={handleSubmit}
         className="bg-white p-6 rounded-xl shadow-md"
       >
-        <div className="flex items-center gap-4 mb-6">
-          <img
-            src="/profile-pic.png"
-            alt="Profile"
-            className="w-20 h-20 rounded-full object-cover"
-          />
-          <div>
-            <p className="font-semibold">Profile Photo</p>
-            <p className="text-sm text-gray-500">
-              Upload a new photo or remove the current one
-            </p>
-          </div>
-        </div>
+        <input
+          type="text"
+          name="fullname"
+          value={profile.fullname}
+          onChange={handleChange}
+          className="border px-3 py-2 rounded-md w-full mb-4"
+          placeholder="Full Name"
+        />
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <input
-            type="text"
-            name="firstName"
-            value={profile.firstName}
-            onChange={handleChange}
-            className="border px-3 py-2 rounded-md"
-            placeholder="First Name"
-          />
-          <input
-            type="text"
-            name="lastName"
-            value={profile.lastName}
-            onChange={handleChange}
-            className="border px-3 py-2 rounded-md"
-            placeholder="Last Name"
-          />
-        </div>
-
-        <div className="mb-4">
-          <select
-            name="careerInterest"
-            value={profile.careerInterest}
-            onChange={handleChange}
-            className="w-full border px-3 py-2 rounded-md"
-          >
-            <option value="Computer Science">Computer Science</option>
-            <option value="Data Science">Data Science</option>
-            <option value="AI & ML">AI & ML</option>
-            <option value="Cybersecurity">Cybersecurity</option>
-            <option value="Web Development">Web Development</option>
-          </select>
-        </div>
+        <select
+          name="career_interest"
+          value={profile.career_interest}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded-md mb-6"
+        >
+          <option value="">Select a Career Interest</option>
+          <option value="Computer Science">Computer Science</option>
+          <option value="Data Science">Data Science</option>
+          <option value="AI & ML">AI & ML</option>
+          <option value="Cybersecurity">Cybersecurity</option>
+          <option value="Web Development">Web Development</option>
+        </select>
 
         <div className="mb-6">
           <p className="font-medium mb-2">Your Interests</p>
@@ -105,7 +112,7 @@ export default function EditProfile() {
                 key={interest}
                 onClick={() => toggleInterest(interest)}
                 className={`px-3 py-2 rounded-md border ${
-                  profile.interests.includes(interest)
+                  profile.intereses.includes(interest)
                     ? "bg-blue-100 text-blue-600 border-blue-400"
                     : "bg-gray-100 text-gray-700"
                 }`}
@@ -121,7 +128,7 @@ export default function EditProfile() {
             Cancel
           </button>
           <button
-            onClick={handleSubmit}
+            type="submit"
             className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
           >
             Save Changes
