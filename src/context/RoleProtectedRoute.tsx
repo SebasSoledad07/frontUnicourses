@@ -11,7 +11,6 @@ export const RoleProtectedRoute = ({
   role: string;
 }) => {
   const { isAuthenticated, role: userRole } = useAuth();
-
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (userRole !== role) return <Navigate to="/unauthorized" />;
 

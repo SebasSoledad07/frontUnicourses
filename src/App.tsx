@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Auth/LoginForm";
 import Register from "./pages/Auth/RegisterForm";
-import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import StudentProfile from "./pages/Student/StudentProfile";
 import EditProfile from "./pages/Student/EditProfile";
@@ -57,11 +56,9 @@ function App() {
           <Route
             path="/"
             element={
-              <ProtectedRoute>
-                <h1 className="text-center mt-10">
-                  Bienvenido al sistema de recomendación de cursos
-                </h1>
-              </ProtectedRoute>
+              <h1 className="text-center mt-10">
+                Bienvenido al sistema de recomendación de cursos
+              </h1>
             }
           />
 

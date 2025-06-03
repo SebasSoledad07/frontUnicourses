@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import supabase from "../../utils/supabase"; // Asegúrate de que la ruta sea correcta
+import supabase from "../../utils/supabase";
+import { useNavigate } from "react-router-dom";
 
 export default function PerfilUsuario() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState({
     nombre: "",
     intereses: [] as string[],
@@ -88,6 +90,7 @@ export default function PerfilUsuario() {
       alert("Error al actualizar el perfil");
     } else {
       alert("Perfil actualizado con éxito");
+      navigate("/student-profile");
     }
   };
   const toggleInterest = (interest: string) => {
@@ -210,7 +213,6 @@ export default function PerfilUsuario() {
         <div className="flex justify-end gap-4">
           <button
             type="submit"
-            onClick={() => (window.location.href = "/student-profile")}
             className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
           >
             Save Changes
