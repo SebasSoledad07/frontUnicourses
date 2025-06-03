@@ -1,31 +1,54 @@
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import { useState } from "react";
-export default function LoginForm() {
+import supabase from "../../utils/supabase";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+
+export const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const navigate = useNavigate();
+  const { login } = useAuth(); // usa el contexto
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setMensaje("");
 
-    const response = await fetch("http://localhost:8000/api/login/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    const data = await response.json();
+    if (authError) {
+      setMensaje("Correo o contraseña incorrectos.");
+      return;
+    }
 
-    if (response.ok) {
-      localStorage.setItem("token", data.access);
-      setMensaje("¡Login exitoso!");
-      window.location.href = "/home";
+    const userId = authData.user?.id;
+
+    const { data: perfil, error: perfilError } = await supabase
+      .from("perfiles")
+      .select("rol")
+      .eq("id", userId)
+      .single();
+
+    if (perfilError || !perfil) {
+      setMensaje("No se pudo obtener el perfil del usuario.");
+      return;
+    }
+
+    login(perfil.rol); // guarda en el contexto
+
+    // Redirigir según el rol
+    if (perfil.rol === "administrador") {
+      navigate("/admin");
     } else {
-      setMensaje(data.message || "Error al iniciar sesión");
+      navigate("/home");
     }
   };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#f6f9ff]">
       <div className="bg-white shadow-xl rounded-xl p-8 w-[350px]">
@@ -37,7 +60,7 @@ export default function LoginForm() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleLogin} className="space-y-4">
           <label className="text-sm">Correo institucional</label>
           <div className="flex items-center border rounded px-3 py-2 mt-1 mb-4">
             <FaEnvelope className="text-gray-400 mr-2" />
@@ -67,7 +90,7 @@ export default function LoginForm() {
           <div className="flex justify-between text-sm mb-4">
             <label>
               <input type="checkbox" className="mr-1" />
-              Recuerdame
+              Recuérdame
             </label>
             <a href="#" className="text-blue-600 hover:underline">
               ¿Olvidaste tu contraseña?
@@ -75,31 +98,23 @@ export default function LoginForm() {
           </div>
 
           <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-            Sign in
+            Iniciar sesión
           </button>
-          {mensaje && <p>{mensaje}</p>}
 
-          <div className="my-4 text-center text-sm text-gray-500">
-            Or continue with
-          </div>
-
-          <button className="w-full flex items-center justify-center border py-2 rounded">
-            <img
-              src="https://img.icons8.com/color/16/000000/google-logo.png"
-              alt="google"
-              className="mr-2"
-            />
-            Google
-          </button>
+          {mensaje && (
+            <p className="text-center text-sm mt-3 text-red-600">{mensaje}</p>
+          )}
         </form>
 
         <p className="mt-4 text-sm text-center">
           ¿No tienes una cuenta?{" "}
           <a href="/register" className="text-blue-600 hover:underline">
-            Sign up
+            Regístrate
           </a>
         </p>
       </div>
     </div>
   );
-}
+};
+
+export default LoginForm;
