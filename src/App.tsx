@@ -1,12 +1,14 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Auth/LoginForm";
 import Register from "./pages/Auth/RegisterForm";
+
 import { AuthProvider } from "./context/AuthContext";
 import StudentProfile from "./pages/Student/StudentProfile";
 import EditProfile from "./pages/Student/EditProfile";
 import CoursesPage from "./pages/Student/CoursesPage";
 import Admin from "./pages/Admin/Admin";
 import { RoleProtectedRoute } from "./context/RoleProtectedRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -56,9 +58,11 @@ function App() {
           <Route
             path="/"
             element={
-              <h1 className="text-center mt-10">
-                Bienvenido al sistema de recomendación de cursos
-              </h1>
+              <ProtectedRoute>
+                <h1 className="text-center mt-10">
+                  Bienvenido al sistema de recomendación de cursos
+                </h1>
+              </ProtectedRoute>
             }
           />
 
