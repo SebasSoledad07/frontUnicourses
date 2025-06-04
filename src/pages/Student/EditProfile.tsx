@@ -57,7 +57,7 @@ export default function PerfilUsuario() {
       alert("Error al actualizar el perfil");
     } else {
       alert("Perfil actualizado con éxito");
-      navigate("/student-profile");
+      navigate("/student");
     }
   };
   const toggleInterest = (interest: string) => {
