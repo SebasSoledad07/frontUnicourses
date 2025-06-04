@@ -27,6 +27,17 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <h1 className="text-center mt-10">
+                  Bienvenido al sistema de recomendación de cursos
+                </h1>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/unauthorized" element={<h1>Acceso no autorizado</h1>} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/home" element={<Navigate to="/student" replace />} />
@@ -55,32 +66,9 @@ function App() {
           >
             <Route path="cursos" element={<ListaCursos />} />
             <Route path="cursos-create" element={<CrearCurso />} />
-
-            {/* Aquí puedes agregar más rutas de administrador según sea necesario */}
-            {/* Ejemplo de rutas comentadas que puedes descomentar y usar */}
-            {/* <Route path="cursos/:id" element={<CursoDetail />} /> */}
-
-            {/* Aquí puedes agregar más rutas de administrador según sea necesario */}
-            {/* Ejemplo de rutas comentadas que puedes descomentar y usar */}
-            {/* <Route path="cursos/:id" element={<CursoDetail />} /> */}
-
-            {/* <Route path="usuarios" element={<Usuarios />} /> */}
-            {/* <Route path="crear-admin" element={<CrearAdmin />} /> */}
           </Route>
 
           {/* Ruta principal */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <h1 className="text-center mt-10">
-                  Bienvenido al sistema de recomendación de cursos
-                </h1>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route path="/unauthorized" element={<h1>Acceso no autorizado</h1>} />
         </Routes>
       </Router>
     </AuthProvider>
