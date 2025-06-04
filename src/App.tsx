@@ -1,14 +1,26 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import Login from "./pages/Auth/LoginForm";
 import Register from "./pages/Auth/RegisterForm";
 
 import { AuthProvider } from "./context/AuthContext";
 import StudentProfile from "./pages/Student/StudentProfile";
 import EditProfile from "./pages/Student/EditProfile";
-import CoursesPage from "./pages/Student/CoursesPage";
-import Admin from "./pages/Admin/Admin";
+
 import { RoleProtectedRoute } from "./context/RoleProtectedRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminLayout from "./pages/Layout/AdminLayout";
+import ListaCursos from "./components/Admin/Cursos/ListaCursos";
+import StudentLayout from "./pages/Layout/StudentLayout";
+import CoursesPage from "./pages/Student/CoursesPage";
+import StudentCoursesView from "./pages/Student/StudentCourseView";
+import CrearCurso from "./components/Admin/Cursos/CrearCurso";
+
+//import Usuarios from "./components/Admin/Usuarios";
 
 function App() {
   return (
@@ -17,44 +29,46 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/home" element={<Navigate to="/student" replace />} />
+          <Route
+            path="/student"
+            element={
+              <RoleProtectedRoute role="estudiante">
+                <StudentLayout />
+              </RoleProtectedRoute>
+            }
+          >
+            <Route path="profile" element={<StudentProfile />} />
+            <Route path="edit-profile" element={<EditProfile />} />
+            <Route path="courses" element={<CoursesPage />} />
+            <Route path="explore" element={<StudentCoursesView />} />
+          </Route>
 
-          {/* Rutas protegidas por autenticación */}
-          <Route
-            path="/home"
-            element={
-              <RoleProtectedRoute role="estudiante">
-                <CoursesPage />
-              </RoleProtectedRoute>
-            }
-          />
-          <Route
-            path="/student-profile"
-            element={
-              <RoleProtectedRoute role="estudiante">
-                <StudentProfile />
-              </RoleProtectedRoute>
-            }
-          />
-          <Route
-            path="/edit-profile"
-            element={
-              <RoleProtectedRoute role="estudiante">
-                <EditProfile />
-              </RoleProtectedRoute>
-            }
-          />
-
-          {/* Ruta protegida para admin */}
+          {/* RUTAS ADMINISTRADOR CON LAYOUT */}
           <Route
             path="/admin"
             element={
               <RoleProtectedRoute role="administrador">
-                <Admin />
+                <AdminLayout />
               </RoleProtectedRoute>
             }
-          />
+          >
+            <Route path="cursos" element={<ListaCursos />} />
+            <Route path="cursos-create" element={<CrearCurso />} />
 
-          {/* Página principal protegida por login (cualquier rol) */}
+            {/* Aquí puedes agregar más rutas de administrador según sea necesario */}
+            {/* Ejemplo de rutas comentadas que puedes descomentar y usar */}
+            {/* <Route path="cursos/:id" element={<CursoDetail />} /> */}
+
+            {/* Aquí puedes agregar más rutas de administrador según sea necesario */}
+            {/* Ejemplo de rutas comentadas que puedes descomentar y usar */}
+            {/* <Route path="cursos/:id" element={<CursoDetail />} /> */}
+
+            {/* <Route path="usuarios" element={<Usuarios />} /> */}
+            {/* <Route path="crear-admin" element={<CrearAdmin />} /> */}
+          </Route>
+
+          {/* Ruta principal */}
           <Route
             path="/"
             element={
@@ -66,7 +80,6 @@ function App() {
             }
           />
 
-          {/* Página en caso de acceso no autorizado */}
           <Route path="/unauthorized" element={<h1>Acceso no autorizado</h1>} />
         </Routes>
       </Router>

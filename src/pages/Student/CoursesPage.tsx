@@ -1,117 +1,99 @@
-import { useState } from "react";
-import { Bookmark, Clock, GraduationCap } from "lucide-react";
-import StudentNavbar from "../../components/StudentProfile/ProfileHeader";
+import { useEffect, useState } from "react";
+import supabase from "../../utils/supabase";
 
-const mockCourses = [
-  {
-    id: 1,
-    title: "Introduction to Python Programming",
-    platform: "Coursera",
-    duration: "40 hours",
-    level: "Beginner",
-    tags: ["Programming", "Python"],
-  },
-  {
-    id: 2,
-    title: "Web Development Bootcamp",
-    platform: "YouTube",
-    duration: "25 hours",
-    level: "Intermediate",
-    tags: ["Web Dev", "JavaScript"],
-  },
-  {
-    id: 3,
-    title: "UI/UX Design Fundamentals",
-    platform: "EdTeam",
-    duration: "30 hours",
-    level: "Beginner",
-    tags: ["Design", "UI/UX"],
-  },
-];
+type Curso = {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  profesor_asignado: string;
+  fecha_creacion: string;
+  activo: boolean;
+  cupo_maximo: number;
+};
 
-export default function StudentCourses() {
-  const [search, setSearch] = useState("");
-  const [saved, setSaved] = useState<number[]>([]);
+type Matricula = {
+  curso: Curso;
+};
 
-  const toggleSave = (id: number) => {
-    setSaved((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
+export default function MisCursos() {
+  const [cursosMatriculados, setCursosMatriculados] = useState<Matricula[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCursos() {
+      setLoading(true);
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error("Error obteniendo usuario:", userError);
+        setCursosMatriculados([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("matriculas")
+        .select(
+          `
+          curso:curso_id (
+            id,
+            nombre,
+            descripcion,
+            profesor_asignado,
+            fecha_creacion,
+            activo,
+            cupo_maximo
+          )
+        `
+        )
+        .eq("usuario_id", user.id);
+
+      if (error) {
+        console.error("Error al obtener cursos matriculados:", error);
+        setCursosMatriculados([]);
+      } else {
+        // Extrae el primer elemento del array 'curso' para cada matrícula
+        setCursosMatriculados(
+          (data as any[]).map((matricula) => ({
+            curso: Array.isArray(matricula.curso)
+              ? matricula.curso[0]
+              : matricula.curso,
+          }))
+        );
+      }
+
+      setLoading(false);
+    }
+
+    fetchCursos();
+  }, []);
+
+  if (loading) return <p>Cargando cursos matriculados...</p>;
+
+  if (cursosMatriculados.length === 0)
+    return <p>No estás matriculado en ningún curso.</p>;
+
   return (
-    <>
-      <StudentNavbar />
-      <div className="max-w-7xl mx-auto px-6 py-10">
-        <div className="bg-white rounded-xl shadow p-6 mb-8">
-          <input
-            type="text"
-            placeholder="Search for courses..."
-            className="w-full border border-gray-300 rounded-md px-4 py-2 mb-4"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <div className="flex gap-4">
-            <select className="border border-gray-300 px-4 py-2 rounded-md">
-              <option>All Platforms</option>
-              <option>Coursera</option>
-              <option>YouTube</option>
-              <option>EdTeam</option>
-            </select>
-            <select className="border border-gray-300 px-4 py-2 rounded-md">
-              <option>All Topics</option>
-              <option>Programming</option>
-              <option>Web Dev</option>
-              <option>Design</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
-          {mockCourses
-            .filter((course) =>
-              course.title.toLowerCase().includes(search.toLowerCase())
-            )
-            .map((course) => (
-              <div
-                key={course.id}
-                className="bg-white border rounded-lg p-6 shadow-sm hover:shadow-lg relative"
-              >
-                <p className="text-sm text-gray-500 mb-2">{course.platform}</p>
-                <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                  {course.title}
-                </h2>
-                <div className="flex items-center text-sm text-gray-500 gap-4 mb-4">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" /> {course.duration}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <GraduationCap className="w-4 h-4" /> {course.level}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {course.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <button
-                  onClick={() => toggleSave(course.id)}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-blue-600"
-                >
-                  <Bookmark
-                    className={`w-5 h-5 ${
-                      saved.includes(course.id) ? "fill-blue-600" : "fill-none"
-                    }`}
-                  />
-                </button>
-              </div>
-            ))}
-        </div>
-      </div>
-    </>
+    <div>
+      <h2>Mis Cursos Matriculados</h2>
+      <ul>
+        {cursosMatriculados.map(({ curso }) => (
+          <li key={curso.id}>
+            <h3>{curso.nombre}</h3>
+            <p>{curso.descripcion}</p>
+            <p>
+              Profesor: {curso.profesor_asignado} | Fecha:{" "}
+              {new Date(curso.fecha_creacion).toLocaleDateString()}
+            </p>
+            <p>Máximo cupos: {curso.cupo_maximo}</p>
+            <p>Estado: {curso.activo ? "Activo" : "Inactivo"}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

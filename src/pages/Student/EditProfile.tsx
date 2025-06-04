@@ -8,9 +8,7 @@ export default function PerfilUsuario() {
     nombre: "",
     intereses: [] as string[],
     carrera: "",
-    foto_perfil: "",
   });
-  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -31,7 +29,6 @@ export default function PerfilUsuario() {
           nombre: data.nombre || "",
           intereses: data.intereses || [],
           carrera: data.carrera || "",
-          foto_perfil: data.foto_perfil || "",
         });
       }
     };
@@ -39,41 +36,12 @@ export default function PerfilUsuario() {
     fetchProfile();
   }, []);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-    }
-  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-
-    let imageUrl = profile.foto_perfil;
-
-    // Subir imagen si hay archivo nuevo
-    if (file) {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}.${fileExt}`;
-      const filePath = `fotos/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("fotos")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) {
-        alert("Error al subir la imagen");
-        return;
-      }
-
-      const { data: imageData } = supabase.storage
-        .from("fotos")
-        .getPublicUrl(filePath);
-
-      imageUrl = imageData.publicUrl;
-    }
 
     // Actualizar perfil
     const { error: updateError } = await supabase
@@ -82,7 +50,6 @@ export default function PerfilUsuario() {
         nombre: profile.nombre,
         intereses: profile.intereses,
         carrera: profile.carrera,
-        foto_perfil: imageUrl,
       })
       .eq("id", user.id);
 
@@ -116,18 +83,6 @@ export default function PerfilUsuario() {
           onChange={(e) => setProfile({ ...profile, nombre: e.target.value })}
           className="border px-3 py-2 rounded-md w-full mb-4"
           placeholder="Full Name"
-        />
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="block w-full text-sm text-gray-500
-             file:mr-4 file:py-2 file:px-4
-             file:rounded-full file:border-0
-             file:text-sm file:font-semibold
-             file:bg-blue-50 file:text-blue-700
-             hover:file:bg-blue-100 mb-4"
         />
 
         <select
