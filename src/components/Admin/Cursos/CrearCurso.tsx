@@ -1,21 +1,10 @@
 import { useState } from "react";
 import supabase from "../../../utils/supabase";
 
-import {
-  TextField,
-  Button,
-  Typography,
-  Paper,
-  Box,
-  Snackbar,
-  Alert,
-} from "@mui/material";
-
 export default function CrearCurso() {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [categoria, setCategoria] = useState("");
-
   const [profesorAsignado, setProfesorAsignado] = useState("");
   const [cupoMaximo, setCupoMaximo] = useState(30);
   const [mensaje, setMensaje] = useState("");
@@ -46,91 +35,258 @@ export default function CrearCurso() {
       setMensaje("Curso creado exitosamente.");
       setNombre("");
       setDescripcion("");
+      setCategoria("");
       setProfesorAsignado("");
       setCupoMaximo(30);
     }
 
     setOpen(true);
+
+    // Auto-cerrar notificación después de 4 segundos
+    setTimeout(() => setOpen(false), 4000);
   };
 
   return (
-    <div className="flex justify-center items-center py-10 bg-gray-50 min-h-screen">
-      <Paper elevation={3} className="w-full max-w-xl p-8 rounded-2xl">
-        <Typography variant="h5" gutterBottom className="text-center font-bold">
+    <div className="flex justify-center items-start py-10 px-4 min-h-screen">
+      {/* Card del formulario */}
+      <div className="w-full max-w-2xl bg-white rounded-lg shadow-md p-8">
+        <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">
           Crear Nuevo Curso
-        </Typography>
-        <form onSubmit={handleSubmit}>
-          <Box mb={2}>
-            <TextField
-              fullWidth
-              label="Nombre del curso"
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Nombre del curso */}
+          <div>
+            <label
+              htmlFor="nombre"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Nombre del curso <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="nombre"
+              type="text"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               required
+              className="
+                w-full px-4 py-2 border border-gray-300 rounded-lg
+                focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+                transition-colors duration-200
+                text-gray-900 placeholder-gray-400
+              "
+              placeholder="Ej: Programación Web con React"
             />
-          </Box>
-          <Box mb={2}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Descripción"
+          </div>
+
+          {/* Descripción */}
+          <div>
+            <label
+              htmlFor="descripcion"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Descripción <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="descripcion"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               required
+              rows={4}
+              className="
+                w-full px-4 py-2 border border-gray-300 rounded-lg
+                focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+                transition-colors duration-200
+                text-gray-900 placeholder-gray-400
+                resize-none
+              "
+              placeholder="Describe el contenido y objetivos del curso..."
             />
-          </Box>
-          <Box mb={2}>
-            <TextField
-              fullWidth
-              label="Categoría"
+          </div>
+
+          {/* Categoría */}
+          <div>
+            <label
+              htmlFor="categoria"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Categoría <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="categoria"
+              type="text"
               value={categoria}
               onChange={(e) => setCategoria(e.target.value)}
               required
+              className="
+                w-full px-4 py-2 border border-gray-300 rounded-lg
+                focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+                transition-colors duration-200
+                text-gray-900 placeholder-gray-400
+              "
+              placeholder="Ej: Programación Web, Frontend, Backend"
             />
-          </Box>
-          <Box mb={2}>
-            <TextField
-              fullWidth
-              label="Profesor asignado"
+          </div>
+
+          {/* Profesor asignado */}
+          <div>
+            <label
+              htmlFor="profesor"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Profesor asignado <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="profesor"
+              type="text"
               value={profesorAsignado}
               onChange={(e) => setProfesorAsignado(e.target.value)}
               required
+              className="
+                w-full px-4 py-2 border border-gray-300 rounded-lg
+                focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+                transition-colors duration-200
+                text-gray-900 placeholder-gray-400
+              "
+              placeholder="Nombre del profesor"
             />
-          </Box>
-          <Box mb={4}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Cupo máximo"
-              value={cupoMaximo}
-              inputProps={{ min: 1 }}
-              onChange={(e) => setCupoMaximo(Number(e.target.value))}
-              required
-            />
-          </Box>
-          <Box textAlign="right">
-            <Button type="submit" variant="contained" color="primary">
-              Crear Curso
-            </Button>
-          </Box>
-        </form>
-      </Paper>
+          </div>
 
-      <Snackbar
-        open={open}
-        autoHideDuration={4000}
-        onClose={() => setOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setOpen(false)}
-          severity={error ? "error" : "success"}
-          sx={{ width: "100%" }}
+          {/* Cupo máximo */}
+          <div>
+            <label
+              htmlFor="cupo"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Cupo máximo <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="cupo"
+              type="number"
+              value={cupoMaximo}
+              onChange={(e) => setCupoMaximo(Number(e.target.value))}
+              min={1}
+              required
+              className="
+                w-full px-4 py-2 border border-gray-300 rounded-lg
+                focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+                transition-colors duration-200
+                text-gray-900
+              "
+            />
+          </div>
+
+          {/* Botón de envío */}
+          <div className="flex justify-end pt-4">
+            <button
+              type="submit"
+              className="
+                px-6 py-3 bg-teal-500 hover:bg-teal-600 
+                text-white font-medium rounded-lg
+                transition-colors duration-200
+                focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2
+                flex items-center gap-2
+              "
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Crear Curso
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Notificación tipo Toast */}
+      {open && (
+        <div
+          className={`
+            fixed bottom-6 right-6 z-50
+            px-6 py-4 rounded-lg shadow-lg
+            flex items-center gap-3
+            animate-slide-up
+            ${
+              error
+                ? "bg-red-50 border-l-4 border-red-500"
+                : "bg-green-50 border-l-4 border-green-500"
+            }
+          `}
         >
-          {mensaje}
-        </Alert>
-      </Snackbar>
+          {/* Icono */}
+          {error ? (
+            <svg
+              className="w-6 h-6 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-6 h-6 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          )}
+
+          {/* Mensaje */}
+          <p
+            className={`
+              text-sm font-medium
+              ${error ? "text-red-800" : "text-green-800"}
+            `}
+          >
+            {mensaje}
+          </p>
+
+          {/* Botón cerrar */}
+          <button
+            onClick={() => setOpen(false)}
+            className={`
+              ml-4 hover:opacity-70 transition-opacity
+              ${error ? "text-red-500" : "text-green-500"}
+            `}
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
