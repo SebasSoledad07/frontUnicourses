@@ -6,41 +6,69 @@ import {
 } from "react-router-dom";
 import Login from "./pages/Auth/LoginForm";
 import Register from "./pages/Auth/RegisterForm";
-
 import { AuthProvider } from "./context/AuthContext";
-import StudentProfile from "./pages/Student/StudentProfile";
-import EditProfile from "./pages/Student/EditProfile";
-
+import EditProfile from "./components/StudentProfile/EditProfile";
 import { RoleProtectedRoute } from "./context/RoleProtectedRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./pages/Layout/AdminLayout";
 import ListaCursos from "./components/Admin/Cursos/ListaCursos";
 import StudentLayout from "./pages/Layout/StudentLayout";
-import CoursesPage from "./pages/Student/CoursesPage";
-import StudentCoursesView from "./pages/Student/StudentCourseView";
+import CoursesPage from "./components/StudentProfile/CoursesPage";
+import StudentCoursesView from "./components/StudentProfile/StudentCourseView";
 import CrearCurso from "./components/Admin/Cursos/CrearCurso";
-
-//import Usuarios from "./components/Admin/Usuarios";
+import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
+import ResetPasswordForm from "./pages/Auth/ResetPassword";
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
+          {/* ============================================
+              RUTAS PÚBLICAS (Sin autenticación)
+          ============================================ */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+          <Route path="/reset-password" element={<ResetPasswordForm />} />
+          <Route
+            path="/unauthorized"
+            element={
+              <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                  <h1 className="text-4xl font-bold text-red-600 mb-4">
+                    Acceso no autorizado
+                  </h1>
+                  <p className="text-gray-600 mb-6">
+                    No tienes permisos para acceder a esta página
+                  </p>
+                  <a
+                    href="/login"
+                    className="px-6 py-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+                  >
+                    Volver al inicio de sesión
+                  </a>
+                </div>
+              </div>
+            }
+          />
+
+          {/* ============================================
+              RUTA RAÍZ - Redirige según autenticación
+          ============================================ */}
           <Route
             path="/"
             element={
               <ProtectedRoute>
-                <h1 className="text-center mt-10">
-                  Bienvenido al sistema de recomendación de cursos
-                </h1>
+                {/* Aquí puedes redirigir según el rol del usuario */}
+                <Navigate to="/student/courses" replace />
               </ProtectedRoute>
             }
           />
-          <Route path="/unauthorized" element={<h1>Acceso no autorizado</h1>} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/home" element={<Navigate to="/student" replace />} />
+
+          {/* ============================================
+              RUTAS DE ESTUDIANTE (Protegidas por rol)
+          ============================================ */}
           <Route
             path="/student"
             element={
@@ -49,13 +77,24 @@ function App() {
               </RoleProtectedRoute>
             }
           >
-            <Route path="profile" element={<StudentProfile />} />
-            <Route path="edit-profile" element={<EditProfile />} />
+            {/* Ruta por defecto del estudiante */}
+            <Route index element={<Navigate to="courses" replace />} />
+
+            {/* Mis cursos matriculados */}
             <Route path="courses" element={<CoursesPage />} />
+
+            {/* Explorar cursos disponibles */}
             <Route path="explore" element={<StudentCoursesView />} />
+
+            {/* Perfil del estudiante */}
+
+            {/* Editar perfil */}
+            <Route path="edit-profile" element={<EditProfile />} />
           </Route>
 
-          {/* RUTAS ADMINISTRADOR CON LAYOUT */}
+          {/* ============================================
+              RUTAS DE ADMINISTRADOR (Protegidas por rol)
+          ============================================ */}
           <Route
             path="/admin"
             element={
@@ -64,11 +103,52 @@ function App() {
               </RoleProtectedRoute>
             }
           >
+            {/* Ruta por defecto del admin */}
+            <Route index element={<Navigate to="cursos" replace />} />
+
+            {/* Gestionar cursos */}
             <Route path="cursos" element={<ListaCursos />} />
+
+            {/* Crear nuevo curso */}
             <Route path="cursos-create" element={<CrearCurso />} />
+
+            {/* Gestionar usuarios (comentado - descomentarlo cuando esté listo) */}
+            {/* <Route path="usuarios" element={<Usuarios />} /> */}
+
+            {/* Crear administrador (agregar cuando esté listo) */}
+            {/* <Route path="crear-admin" element={<CrearAdmin />} /> */}
           </Route>
 
-          {/* Ruta principal */}
+          {/* ============================================
+              REDIRECCIONES Y RUTAS LEGACY
+          ============================================ */}
+          <Route path="/home" element={<Navigate to="/student" replace />} />
+
+          {/* ============================================
+              RUTA 404 - Página no encontrada
+          ============================================ */}
+          <Route
+            path="*"
+            element={
+              <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                  <h1 className="text-6xl font-bold text-gray-300 mb-4">404</h1>
+                  <h2 className="text-2xl font-semibold text-gray-700 mb-4">
+                    Página no encontrada
+                  </h2>
+                  <p className="text-gray-600 mb-6">
+                    La página que buscas no existe
+                  </p>
+                  <a
+                    href="/"
+                    className="px-6 py-3 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+                  >
+                    Volver al inicio
+                  </a>
+                </div>
+              </div>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>
