@@ -19,7 +19,6 @@ interface ToastMessage {
 }
 
 export default function StudentCoursesView() {
-  const [matriculados, setMatriculados] = useState<Curso[]>([]);
   const [disponibles, setDisponibles] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCurso, setSelectedCurso] = useState<Curso | null>(null);
@@ -56,17 +55,6 @@ export default function StudentCoursesView() {
       .eq("perfil_id", user.id);
 
     const cursoIds = matriculas?.map((m) => m.curso_id) || [];
-
-    // Cursos matriculados
-    if (cursoIds.length > 0) {
-      const { data: cursosMatriculados } = await supabase
-        .from("cursos")
-        .select("*")
-        .in("id", cursoIds);
-      setMatriculados(cursosMatriculados || []);
-    } else {
-      setMatriculados([]);
-    }
 
     // Cursos disponibles
     const { data: cursosDisponibles } = await supabase
