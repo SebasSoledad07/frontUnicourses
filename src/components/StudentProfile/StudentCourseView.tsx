@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import supabase from "../../utils/supabase";
+import Toast from "../Toast";
 
 interface Curso {
   id: number;
@@ -12,6 +13,11 @@ interface Curso {
   cupos_ocupados?: number;
 }
 
+interface ToastMessage {
+  type: "success" | "error" | "warning" | "info";
+  message: string;
+}
+
 export default function StudentCoursesView() {
   const [matriculados, setMatriculados] = useState<Curso[]>([]);
   const [disponibles, setDisponibles] = useState<Curso[]>([]);
@@ -19,6 +25,14 @@ export default function StudentCoursesView() {
   const [selectedCurso, setSelectedCurso] = useState<Curso | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [matriculando, setMatriculando] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [modalMatricular, setModalMatricular] = useState<{
+    show: boolean;
+    curso: Curso | null;
+  }>({
+    show: false,
+    curso: null,
+  });
 
   useEffect(() => {
     fetchCursos();
@@ -35,33 +49,26 @@ export default function StudentCoursesView() {
       return;
     }
 
-    // Cursos matriculados
-    const { data: cursosMatriculados } = await supabase
+    // Obtener IDs de cursos matriculados
+    const { data: matriculas } = await supabase
       .from("matriculas")
-      .select(
-        `
-        curso_id,
-        cursos (
-          id,
-          nombre,
-          descripcion,
-          profesor_asignado,
-          fecha_creacion,
-          activo,
-          cupo_maximo
-        )
-      `
-      )
-      .eq("perfil_id", user.id); // ✅ Corregido
+      .select("curso_id")
+      .eq("perfil_id", user.id);
 
-    const cursosMat: Curso[] = cursosMatriculados
-      ? cursosMatriculados.flatMap((m) => m.cursos)
-      : [];
+    const cursoIds = matriculas?.map((m) => m.curso_id) || [];
 
-    // IDs de cursos ya matriculados
-    const matriculadosIds = cursosMat.map((c) => c.id);
+    // Cursos matriculados
+    if (cursoIds.length > 0) {
+      const { data: cursosMatriculados } = await supabase
+        .from("cursos")
+        .select("*")
+        .in("id", cursoIds);
+      setMatriculados(cursosMatriculados || []);
+    } else {
+      setMatriculados([]);
+    }
 
-    // Obtener todos los cursos activos
+    // Cursos disponibles
     const { data: cursosDisponibles } = await supabase
       .from("cursos")
       .select("*")
@@ -69,7 +76,7 @@ export default function StudentCoursesView() {
 
     const disponiblesConCupo = await Promise.all(
       (cursosDisponibles || [])
-        .filter((c) => !matriculadosIds.includes(c.id))
+        .filter((c) => !cursoIds.includes(c.id))
         .map(async (curso) => {
           const { count } = await supabase
             .from("matriculas")
@@ -80,7 +87,6 @@ export default function StudentCoursesView() {
         })
     );
 
-    setMatriculados(cursosMat);
     setDisponibles(disponiblesConCupo);
     setLoading(false);
   };
@@ -95,59 +101,73 @@ export default function StudentCoursesView() {
     setSelectedCurso(null);
   };
 
-  const handleMatricular = async (cursoId: number) => {
+  const handleMatricular = async () => {
+    if (!modalMatricular.curso) return;
+
     setMatriculando(true);
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
+      setToast({ type: "error", message: "Debes iniciar sesión" });
       setMatriculando(false);
-      alert("Debes iniciar sesión.");
       return;
     }
 
-    // ✅ NUEVO: Verificar si ya está matriculado
+    // Verificar si ya está matriculado
     const { data: existente, error: errorVerificar } = await supabase
       .from("matriculas")
       .select("id")
       .eq("perfil_id", user.id)
-      .eq("curso_id", cursoId)
-      .maybeSingle(); // Usa maybeSingle() en lugar de single() para evitar error si no existe
+      .eq("curso_id", modalMatricular.curso.id)
+      .maybeSingle();
 
     if (errorVerificar && errorVerificar.code !== "PGRST116") {
-      // PGRST116 = no rows returned (está bien)
-      console.error("Error verificando matrícula:", errorVerificar);
-      alert("Error al verificar matrícula.");
+      setToast({ type: "error", message: "Error al verificar matrícula" });
       setMatriculando(false);
+      setModalMatricular({ show: false, curso: null });
       return;
     }
 
     if (existente) {
-      alert("Ya estás matriculado en este curso.");
+      setToast({
+        type: "warning",
+        message: "Ya estás matriculado en este curso",
+      });
       setMatriculando(false);
+      setModalMatricular({ show: false, curso: null });
       return;
     }
 
-    // Si no está matriculado, proceder con la inserción
+    // Matricular
     const { error } = await supabase.from("matriculas").insert({
       perfil_id: user.id,
-      curso_id: cursoId,
+      curso_id: modalMatricular.curso.id,
     });
 
     if (error) {
-      // Manejo adicional por si acaso
       if (error.code === "23505" || error.message.includes("duplicate key")) {
-        alert("Ya estás matriculado en este curso.");
+        setToast({
+          type: "warning",
+          message: "Ya estás matriculado en este curso",
+        });
       } else {
-        alert("Error al matricular: " + error.message);
+        setToast({
+          type: "error",
+          message: "Error al matricular: " + error.message,
+        });
       }
     } else {
-      alert("¡Matriculado con éxito!");
-      fetchCursos(); // Recargar la lista
+      setToast({
+        type: "success",
+        message: `¡Te matriculaste exitosamente en "${modalMatricular.curso.nombre}"!`,
+      });
+      fetchCursos();
       handleCloseModal();
     }
     setMatriculando(false);
+    setModalMatricular({ show: false, curso: null });
   };
 
   if (loading) {
@@ -179,6 +199,15 @@ export default function StudentCoursesView() {
 
   return (
     <div className="space-y-8">
+      {/* Toast */}
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       {/* Sección: Cursos Disponibles */}
       <section>
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
@@ -200,17 +229,14 @@ export default function StudentCoursesView() {
                   key={curso.id}
                   className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
                 >
-                  {/* Header de la card */}
                   <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
                     <h3 className="text-lg font-semibold text-white truncate">
                       {curso.nombre}
                     </h3>
                   </div>
 
-                  {/* Contenido */}
                   <div className="p-6">
                     <div className="space-y-3 mb-4">
-                      {/* Profesor */}
                       <div className="flex items-center gap-2">
                         <svg
                           className="w-4 h-4 text-gray-400 flex-shrink-0"
@@ -230,7 +256,6 @@ export default function StudentCoursesView() {
                         </span>
                       </div>
 
-                      {/* Cupos */}
                       <div className="flex items-center gap-2">
                         <svg
                           className="w-4 h-4 text-gray-400 flex-shrink-0"
@@ -251,7 +276,6 @@ export default function StudentCoursesView() {
                       </div>
                     </div>
 
-                    {/* Badge de disponibilidad */}
                     {cursoLleno ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 mb-4">
                         Cupo lleno
@@ -262,10 +286,11 @@ export default function StudentCoursesView() {
                       </span>
                     )}
 
-                    {/* Botones */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleMatricular(curso.id)}
+                        onClick={() =>
+                          setModalMatricular({ show: true, curso })
+                        }
                         disabled={cursoLleno || matriculando}
                         className={`
                           flex-1 px-4 py-2 rounded-lg text-sm font-medium
@@ -277,11 +302,7 @@ export default function StudentCoursesView() {
                           }
                         `}
                       >
-                        {matriculando
-                          ? "Matriculando..."
-                          : cursoLleno
-                          ? "No disponible"
-                          : "Matricular"}
+                        {cursoLleno ? "No disponible" : "Matricular"}
                       </button>
                       <button
                         onClick={() => handleOpenModal(curso)}
@@ -298,11 +319,121 @@ export default function StudentCoursesView() {
         )}
       </section>
 
-      {/* Modal de detalles */}
+      {/* Modal de confirmación de matrícula */}
+      {modalMatricular.show && modalMatricular.curso && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
+            <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-teal-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white">
+                  Confirmar Matrícula
+                </h3>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-700 mb-2">
+                ¿Deseas matricularte en el siguiente curso?
+              </p>
+              <div className="bg-teal-50 p-4 rounded-lg border border-teal-200">
+                <p className="font-semibold text-gray-900">
+                  {modalMatricular.curso.nombre}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Profesor: {modalMatricular.curso.profesor_asignado}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 px-6 py-4 flex gap-3">
+              <button
+                onClick={() => setModalMatricular({ show: false, curso: null })}
+                disabled={matriculando}
+                className="flex-1 px-6 py-3 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg transition-colors duration-200 font-medium disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleMatricular}
+                disabled={matriculando}
+                className={`
+                  flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200
+                  flex items-center justify-center gap-2
+                  ${
+                    matriculando
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 shadow-lg hover:shadow-xl"
+                  }
+                  text-white
+                `}
+              >
+                {matriculando ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Matriculando...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    Sí, matricular
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalles - igual que antes */}
       {modalOpen && selectedCurso && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header del modal */}
             <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">
@@ -329,7 +460,6 @@ export default function StudentCoursesView() {
               </div>
             </div>
 
-            {/* Contenido del modal */}
             <div className="p-6 space-y-4">
               <div>
                 <h4 className="text-2xl font-bold text-gray-800 mb-2">
@@ -412,38 +542,9 @@ export default function StudentCoursesView() {
                     </p>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-3">
-                  <svg
-                    className="w-5 h-5 text-teal-500 mt-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Estado</p>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        selectedCurso.activo
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {selectedCurso.activo ? "Activo" : "Inactivo"}
-                    </span>
-                  </div>
-                </div>
               </div>
             </div>
 
-            {/* Footer del modal */}
             <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
               <button
                 onClick={handleCloseModal}

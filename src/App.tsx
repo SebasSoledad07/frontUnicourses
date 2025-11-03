@@ -15,9 +15,10 @@ import ListaCursos from "./components/Admin/Cursos/ListaCursos";
 import StudentLayout from "./pages/Layout/StudentLayout";
 import CoursesPage from "./components/StudentProfile/CoursesPage";
 import StudentCoursesView from "./components/StudentProfile/StudentCourseView";
-import CrearCurso from "./components/Admin/Cursos/CrearCurso";
 import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
 import ResetPasswordForm from "./pages/Auth/ResetPassword";
+import ListaAdministradores from "./components/Admin/GestiónAdmin/ListaAdministradores";
+import ListaEstudiantes from "./components/Admin/GestiónEstudiantes/ListaEstudiantes";
 
 function App() {
   return (
@@ -105,18 +106,13 @@ function App() {
           >
             {/* Ruta por defecto del admin */}
             <Route index element={<Navigate to="cursos" replace />} />
-
             {/* Gestionar cursos */}
             <Route path="cursos" element={<ListaCursos />} />
-
             {/* Crear nuevo curso */}
-            <Route path="cursos-create" element={<CrearCurso />} />
-
             {/* Gestionar usuarios (comentado - descomentarlo cuando esté listo) */}
-            {/* <Route path="usuarios" element={<Usuarios />} /> */}
-
+            <Route path="usuarios" element={<ListaEstudiantes />} />
             {/* Crear administrador (agregar cuando esté listo) */}
-            {/* <Route path="crear-admin" element={<CrearAdmin />} /> */}
+            <Route path="crear-admin" element={<ListaAdministradores />} /> */
           </Route>
 
           {/* ============================================

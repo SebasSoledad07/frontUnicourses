@@ -1,17 +1,14 @@
 import { useEffect, useState } from "react";
 import supabase from "../../../utils/supabase";
-import CrearCurso from "./CrearCurso";
-import EditarCurso from "./EditarCurso";
+import CrearAdministrador from "./CrearAdmin";
+import EditarAdministrador from "./EditarAdmin";
 import Toast from "../../Toast";
 
-interface Curso {
-  id: number;
+interface Administrador {
+  id: string;
   nombre: string;
-  descripcion: string;
-  categoria: string;
-  profesor_asignado: string;
-  activo: boolean;
-  cupo_maximo: number;
+  email: string;
+  rol: string;
 }
 
 interface ToastMessage {
@@ -19,82 +16,100 @@ interface ToastMessage {
   message: string;
 }
 
-export default function ListaCursos() {
-  const [cursos, setCursos] = useState<Curso[]>([]);
+export default function ListaAdministradores() {
+  const [administradores, setAdministradores] = useState<Administrador[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalCrear, setModalCrear] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
-  const [cursoSeleccionado, setCursoSeleccionado] = useState<Curso | null>(
-    null
-  );
+  const [adminSeleccionado, setAdminSeleccionado] =
+    useState<Administrador | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [modalEliminar, setModalEliminar] = useState<{
     show: boolean;
-    curso: Curso | null;
+    admin: Administrador | null;
   }>({
     show: false,
-    curso: null,
+    admin: null,
   });
   const [eliminando, setEliminando] = useState(false);
 
   useEffect(() => {
-    fetchCursos();
+    fetchAdministradores();
   }, []);
 
-  const fetchCursos = async () => {
+  const fetchAdministradores = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("cursos")
-      .select("*")
+      .from("perfiles")
+      .select("id, nombre, email, rol")
+      .eq("rol", "administrador")
       .order("nombre");
 
     if (error) {
-      console.error("Error al cargar cursos:", error);
-      setToast({ type: "error", message: "Error al cargar cursos" });
+      console.error("Error al cargar administradores:", error);
+      setToast({ type: "error", message: "Error al cargar administradores" });
     } else {
-      setCursos(data || []);
+      setAdministradores(data || []);
     }
     setLoading(false);
   };
 
   const handleEliminar = async () => {
-    if (!modalEliminar.curso) return;
+    if (!modalEliminar.admin) return;
 
     setEliminando(true);
 
-    const { error } = await supabase
-      .from("cursos")
+    // Primero eliminar de la tabla perfiles
+    const { error: perfilError } = await supabase
+      .from("perfiles")
       .delete()
-      .eq("id", modalEliminar.curso.id);
+      .eq("id", modalEliminar.admin.id);
 
-    if (error) {
+    if (perfilError) {
       setToast({
         type: "error",
-        message: "Error al eliminar curso: " + error.message,
+        message: "Error al eliminar perfil: " + perfilError.message,
       });
-    } else {
-      setToast({
-        type: "success",
-        message: `Curso "${modalEliminar.curso.nombre}" eliminado exitosamente`,
-      });
-      fetchCursos();
+      setEliminando(false);
+      return;
     }
 
-    setModalEliminar({ show: false, curso: null });
+    // Intentar eliminar de auth (puede fallar si no se ha confirmado el email)
+    try {
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        modalEliminar.admin.id
+      );
+
+      if (authError) {
+        console.warn(
+          "No se pudo eliminar de auth (probablemente usuario no confirmado):",
+          authError
+        );
+      }
+    } catch (err) {
+      console.warn("Error al eliminar de auth:", err);
+    }
+
+    setToast({
+      type: "success",
+      message: `Administrador "${modalEliminar.admin.nombre}" eliminado exitosamente`,
+    });
+
+    setModalEliminar({ show: false, admin: null });
     setEliminando(false);
+    fetchAdministradores();
   };
 
-  const handleEditar = (curso: Curso) => {
-    setCursoSeleccionado(curso);
+  const handleEditar = (admin: Administrador) => {
+    setAdminSeleccionado(admin);
     setModalEditar(true);
   };
 
-  const cursosFiltrados = cursos.filter(
-    (curso) =>
-      curso.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      curso.descripcion.toLowerCase().includes(busqueda.toLowerCase()) ||
-      curso.categoria.toLowerCase().includes(busqueda.toLowerCase())
+  const administradoresFiltrados = administradores.filter(
+    (admin) =>
+      admin.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      admin.email.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   if (loading) {
@@ -138,10 +153,11 @@ export default function ListaCursos() {
       {/* Header */}
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Cursos</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Administradores</h1>
           <p className="text-gray-600 mt-1">
-            {cursos.length} curso{cursos.length !== 1 ? "s" : ""} registrado
-            {cursos.length !== 1 ? "s" : ""}
+            {administradores.length} administrador
+            {administradores.length !== 1 ? "es" : ""} registrado
+            {administradores.length !== 1 ? "s" : ""}
           </p>
         </div>
         <button
@@ -161,7 +177,7 @@ export default function ListaCursos() {
               d="M12 6v6m0 0v6m0-6h6m-6 0H6"
             />
           </svg>
-          Nuevo Curso
+          Nuevo Administrador
         </button>
       </div>
 
@@ -187,14 +203,14 @@ export default function ListaCursos() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, descripción o categoría..."
+            placeholder="Buscar por nombre o correo..."
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
           />
         </div>
       </div>
 
-      {/* Grid de cursos */}
-      {cursosFiltrados.length === 0 ? (
+      {/* Lista de administradores */}
+      {administradoresFiltrados.length === 0 ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <svg
             className="w-20 h-20 text-gray-300 mx-auto mb-4"
@@ -206,37 +222,53 @@ export default function ListaCursos() {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
             />
           </svg>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">
-            {busqueda ? "No se encontraron resultados" : "No hay cursos"}
+            {busqueda
+              ? "No se encontraron resultados"
+              : "No hay administradores"}
           </h3>
           <p className="text-gray-500">
             {busqueda
               ? "Intenta con otros términos de búsqueda"
-              : "Crea el primer curso"}
+              : "Crea el primer administrador"}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cursosFiltrados.map((curso) => (
+          {administradoresFiltrados.map((admin) => (
             <div
-              key={curso.id}
+              key={admin.id}
               className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
             >
-              <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
-                <h3 className="text-lg font-semibold text-white line-clamp-2">
-                  {curso.nombre}
+              {/* Avatar y header */}
+              <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-8 text-center">
+                <div className="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center mb-3">
+                  <svg
+                    className="w-10 h-10 text-teal-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-white truncate">
+                  {admin.nombre}
                 </h3>
               </div>
 
+              {/* Información */}
               <div className="p-6">
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3 min-h-[60px]">
-                  {curso.descripcion}
-                </p>
-
                 <div className="space-y-3 mb-4">
+                  {/* Email */}
                   <div className="flex items-center gap-2">
                     <svg
                       className="w-4 h-4 text-gray-400 flex-shrink-0"
@@ -248,14 +280,15 @@ export default function ListaCursos() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
                       />
                     </svg>
-                    <span className="text-xs text-gray-600">
-                      {curso.categoria}
+                    <span className="text-sm text-gray-600 truncate">
+                      {admin.email}
                     </span>
                   </div>
 
+                  {/* Rol */}
                   <div className="flex items-center gap-2">
                     <svg
                       className="w-4 h-4 text-gray-400 flex-shrink-0"
@@ -267,58 +300,25 @@ export default function ListaCursos() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                       />
                     </svg>
-                    <span className="text-xs text-gray-600">
-                      {curso.profesor_asignado}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 text-gray-400 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                      />
-                    </svg>
-                    <span className="text-xs text-gray-600">
-                      Cupo: {curso.cupo_maximo}
+                    <span className="text-sm font-medium text-teal-600">
+                      Administrador
                     </span>
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <span
-                    className={`
-                      inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                      ${
-                        curso.activo
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }
-                    `}
-                  >
-                    {curso.activo ? "✓ Activo" : "Inactivo"}
-                  </span>
-                </div>
-
+                {/* Botones de acción */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleEditar(curso)}
+                    onClick={() => handleEditar(admin)}
                     className="flex-1 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors duration-200 text-sm font-medium"
                   >
                     Editar
                   </button>
                   <button
-                    onClick={() => setModalEliminar({ show: true, curso })}
+                    onClick={() => setModalEliminar({ show: true, admin })}
                     className="flex-1 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors duration-200 text-sm font-medium"
                   >
                     Eliminar
@@ -332,43 +332,44 @@ export default function ListaCursos() {
 
       {/* Modal Crear */}
       {modalCrear && (
-        <CrearCurso
+        <CrearAdministrador
           onClose={() => setModalCrear(false)}
-          onSuccess={(nombre) => {
-            fetchCursos();
+          onSuccess={(nombre: any) => {
+            fetchAdministradores();
             setModalCrear(false);
             setToast({
               type: "success",
-              message: `Curso "${nombre}" creado exitosamente`,
+              message: `Administrador "${nombre}" creado exitosamente`,
             });
           }}
         />
       )}
 
       {/* Modal Editar */}
-      {modalEditar && cursoSeleccionado && (
-        <EditarCurso
-          curso={cursoSeleccionado}
+      {modalEditar && adminSeleccionado && (
+        <EditarAdministrador
+          admin={adminSeleccionado}
           onClose={() => {
             setModalEditar(false);
-            setCursoSeleccionado(null);
+            setAdminSeleccionado(null);
           }}
-          onSuccess={(nombre) => {
-            fetchCursos();
+          onSuccess={(nombre: any) => {
+            fetchAdministradores();
             setModalEditar(false);
-            setCursoSeleccionado(null);
+            setAdminSeleccionado(null);
             setToast({
               type: "success",
-              message: `Curso "${nombre}" actualizado exitosamente`,
+              message: `Administrador "${nombre}" actualizado exitosamente`,
             });
           }}
         />
       )}
 
       {/* Modal de confirmación de eliminación */}
-      {modalEliminar.show && modalEliminar.curso && (
+      {modalEliminar.show && modalEliminar.admin && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
+            {/* Header */}
             <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
@@ -386,31 +387,34 @@ export default function ListaCursos() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-white">Eliminar Curso</h3>
+                <h3 className="text-xl font-bold text-white">
+                  Eliminar Administrador
+                </h3>
               </div>
             </div>
 
+            {/* Contenido */}
             <div className="p-6">
               <p className="text-gray-700 mb-2">
-                ¿Estás seguro de que deseas eliminar este curso?
+                ¿Estás seguro de que deseas eliminar al administrador?
               </p>
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <p className="font-semibold text-gray-900">
-                  {modalEliminar.curso.nombre}
+                  {modalEliminar.admin.nombre}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {modalEliminar.curso.categoria}
+                  {modalEliminar.admin.email}
                 </p>
               </div>
               <p className="text-sm text-red-600 mt-4">
-                ⚠️ Esta acción no se puede deshacer. Se eliminarán todas las
-                matrículas asociadas.
+                ⚠️ Esta acción no se puede deshacer.
               </p>
             </div>
 
+            {/* Footer */}
             <div className="bg-gray-50 px-6 py-4 flex gap-3">
               <button
-                onClick={() => setModalEliminar({ show: false, curso: null })}
+                onClick={() => setModalEliminar({ show: false, admin: null })}
                 disabled={eliminando}
                 className="flex-1 px-6 py-3 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg transition-colors duration-200 font-medium disabled:opacity-50"
               >
