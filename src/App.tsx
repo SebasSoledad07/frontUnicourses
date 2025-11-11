@@ -19,6 +19,7 @@ import ForgotPasswordForm from "./pages/Auth/ForgotPassword";
 import ResetPasswordForm from "./pages/Auth/ResetPassword";
 import ListaAdministradores from "./components/Admin/GestiónAdmin/ListaAdministradores";
 import ListaEstudiantes from "./components/Admin/GestiónEstudiantes/ListaEstudiantes";
+import PerfilView from "./components/StudentProfile/PerfilView";
 
 function App() {
   return (
@@ -88,6 +89,7 @@ function App() {
             <Route path="explore" element={<StudentCoursesView />} />
 
             {/* Perfil del estudiante */}
+            <Route path="profile" element={<PerfilView />} />
 
             {/* Editar perfil */}
             <Route path="edit-profile" element={<EditProfile />} />
