@@ -1,7 +1,7 @@
 import { useState } from "react";
-import supabase from "../../utils/supabase";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { loginWithEmailPassword } from "../../services/authService";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -19,43 +19,27 @@ export const LoginForm = () => {
     setLoading(true);
 
     try {
-      const { data: authData, error: authError } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { role } = await loginWithEmailPassword(email, password);
 
-      if (authError) {
-        setMensaje("Correo o contraseña incorrectos.");
-        setLoading(false);
-        return;
-      }
+      login(role); // actualiza contexto
 
-      const userId = authData.user?.id;
+      const roleStr = String(role);
 
-      const { data: perfil, error: perfilError } = await supabase
-        .from("perfiles")
-        .select("rol")
-        .eq("id", userId)
-        .single();
-
-      if (perfilError || !perfil) {
-        setMensaje("No se pudo obtener el perfil del usuario.");
-        setLoading(false);
-        return;
-      }
-
-      login(perfil.rol);
-
-      // Redirigir según el rol
-      if (perfil.rol === "administrador") {
+      if (roleStr === "administrador") {
         navigate("/admin");
+      } else if (roleStr === "profesor") {
+        navigate("/teacher");
       } else {
         navigate("/home");
       }
     } catch (err) {
       console.error(err);
-      setMensaje("Error inesperado. Intenta de nuevo.");
+      setMensaje(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado. Intenta de nuevo."
+      );
+    } finally {
       setLoading(false);
     }
   };

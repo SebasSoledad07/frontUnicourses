@@ -1,5 +1,5 @@
 import { useState } from "react";
-import supabase from "../../utils/supabase";
+import { resetPassword } from "../../services/authService";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -14,23 +14,19 @@ export default function ForgotPasswordForm() {
     setSuccess(false);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) {
-        setMensaje("Error al enviar el correo: " + error.message);
-        setSuccess(false);
-      } else {
-        setMensaje(
-          "¡Correo enviado! Revisa tu bandeja de entrada para restablecer tu contraseña."
-        );
-        setSuccess(true);
-        setEmail("");
-      }
+      await resetPassword(email);
+      setMensaje(
+        "¡Correo enviado! Revisa tu bandeja de entrada para restablecer tu contraseña."
+      );
+      setSuccess(true);
+      setEmail("");
     } catch (err) {
       console.error(err);
-      setMensaje("Error inesperado. Intenta de nuevo.");
+      setMensaje(
+        err instanceof Error
+          ? "Error al enviar el correo: " + err.message
+          : "Error inesperado. Intenta de nuevo."
+      );
       setSuccess(false);
     } finally {
       setLoading(false);

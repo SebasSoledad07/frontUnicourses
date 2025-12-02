@@ -1,5 +1,5 @@
 import { useState } from "react";
-import supabase from "../../utils/supabase";
+import { signUpWithProfile } from "../../services/authService";
 
 const interestsList = [
   "Mathematics",
@@ -74,39 +74,13 @@ export default function RegisterForm() {
     }
 
     try {
-      // 1. Crear usuario con Supabase Auth
-      const { data: signUpData, error: signUpError } =
-        await supabase.auth.signUp({
-          email,
-          password,
-        });
-
-      if (signUpError) {
-        setMensaje("Error al registrar usuario: " + signUpError.message);
-        return;
-      }
-
-      const user = signUpData.user;
-      if (!user) {
-        setMensaje("No se pudo crear el usuario.");
-        return;
-      }
-
-      // 2. Insertar en la tabla perfiles
-      const { error: perfilError } = await supabase.from("perfiles").insert([
-        {
-          id: user.id,
-          nombre: `${nombre} ${apellido}`,
-          rol: "estudiante",
-          intereses: selectedInterests,
-          carrera: selectedCarrera,
-        },
-      ]);
-
-      if (perfilError) {
-        setMensaje("Error al guardar perfil: " + perfilError.message);
-        return;
-      }
+      await signUpWithProfile({
+        email,
+        password,
+        nombreCompleto: `${nombre} ${apellido}`,
+        intereses: selectedInterests,
+        carrera: selectedCarrera,
+      });
 
       setMensaje(
         "Usuario registrado con éxito. Revisa tu correo para confirmar."
@@ -116,7 +90,11 @@ export default function RegisterForm() {
       }, 2000);
     } catch (err) {
       console.error(err);
-      setMensaje("Error inesperado. Intenta de nuevo.");
+      setMensaje(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado. Intenta de nuevo."
+      );
     }
   };
 

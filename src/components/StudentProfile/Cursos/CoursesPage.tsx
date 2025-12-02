@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import supabase from "../../utils/supabase";
+import { useNavigate } from "react-router-dom";
+import supabase from "../../../services/supabase";
 
 type Curso = {
   id: number;
@@ -12,6 +13,7 @@ type Curso = {
 };
 
 export default function MisCursos() {
+  const navigate = useNavigate();
   const [cursosMatriculados, setCursosMatriculados] = useState<Curso[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCurso, setSelectedCurso] = useState<Curso | null>(null);
@@ -75,7 +77,11 @@ export default function MisCursos() {
 
     setLoading(false);
   }
-
+  const handleViewModules = (cursoId: string | number, cursoNombre: string) => {
+    navigate(`/student/courses/${cursoId}/modules`, {
+      state: { cursoNombre },
+    });
+  };
   const handleOpenModal = (curso: Curso) => {
     setSelectedCurso(curso);
     setModalOpen(true);
@@ -276,12 +282,19 @@ export default function MisCursos() {
               </div>
 
               {/* Botones de acción */}
+              {/* Botones de acción - REEMPLAZA ESTA SECCIÓN */}
               <div className="flex gap-2">
                 <button
                   onClick={() => handleOpenModal(curso)}
                   className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200 text-sm font-medium"
                 >
                   Ver detalles
+                </button>
+                <button
+                  onClick={() => handleViewModules(curso.id, curso.nombre)}
+                  className="flex-1 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors duration-200 text-sm font-medium"
+                >
+                  Ver módulos
                 </button>
               </div>
             </div>

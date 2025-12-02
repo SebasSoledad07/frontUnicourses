@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import supabase from "../../utils/supabase";
+import {
+  ensureRecoverySession,
+  onAuthRecovery,
+  updatePassword,
+} from "../../services/authService";
 
 export default function ResetPasswordForm() {
   const navigate = useNavigate();
@@ -13,14 +17,10 @@ export default function ResetPasswordForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    // Verificar que hay una sesión de recuperación válida
     const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        // Si no hay sesión válida, redirigir al login
+      try {
+        await ensureRecoverySession();
+      } catch {
         navigate("/login");
       }
     };
@@ -28,15 +28,12 @@ export default function ResetPasswordForm() {
     checkSession();
 
     // Escuchar eventos de autenticación
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        // Usuario tiene sesión válida para cambiar contraseña
-        console.log("Usuario en modo de recuperación de contraseña");
-      }
+    const unsubscribe = onAuthRecovery(() => {
+      console.log("Usuario en modo de recuperación de contraseña");
     });
 
     return () => {
-      authListener?.subscription.unsubscribe();
+      unsubscribe();
     };
   }, [navigate]);
 
@@ -67,20 +64,16 @@ export default function ResetPasswordForm() {
     setMensaje("");
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
-
-      if (error) {
-        setMensaje("Error al actualizar contraseña: " + error.message);
-        setSuccess(false);
-      } else {
-        setSuccess(true);
-        setTimeout(() => navigate("/login"), 3000);
-      }
+      await updatePassword(password);
+      setSuccess(true);
+      setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
       console.error(err);
-      setMensaje("Error inesperado. Intenta de nuevo.");
+      setMensaje(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado. Intenta de nuevo."
+      );
       setSuccess(false);
     } finally {
       setLoading(false);

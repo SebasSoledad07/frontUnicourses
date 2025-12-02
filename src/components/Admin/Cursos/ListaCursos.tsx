@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import supabase from "../../../utils/supabase";
+import supabase from "../../../services/supabase";
 import CrearCurso from "./CrearCurso";
 import EditarCurso from "./EditarCurso";
 import Toast from "../../Toast";

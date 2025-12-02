@@ -2,25 +2,23 @@ import { useEffect, useState } from "react";
 import { getCurrentProfile } from "../../services/profileService";
 import { signOut } from "../../services/authService";
 
-interface ProfileHeaderProps {
+interface TeacherHeaderProps {
   onToggleSidebar: () => void;
   sidebarOpen: boolean;
 }
 
-interface ProfileHeaderState {
+interface TeacherProfileState {
   nombre: string;
-  intereses: string[];
-  carrera: string;
+  email: string;
 }
 
-export default function ProfileHeader({
+export default function TeacherHeader({
   onToggleSidebar,
   sidebarOpen,
-}: ProfileHeaderProps) {
-  const [profile, setProfile] = useState<ProfileHeaderState>({
+}: TeacherHeaderProps) {
+  const [profile, setProfile] = useState<TeacherProfileState>({
     nombre: "",
-    intereses: [],
-    carrera: "",
+    email: "",
   });
   const [loading, setLoading] = useState(true);
 
@@ -32,8 +30,7 @@ export default function ProfileHeader({
         if (p) {
           setProfile({
             nombre: p.nombre || "",
-            intereses: (p.intereses as string[]) || [],
-            carrera: (p as any).carrera || "", // o añade carrera al tipo Perfil
+            email: p.email || "",
           });
         }
       } catch (err) {
@@ -108,7 +105,7 @@ export default function ProfileHeader({
                   <span className="inline-block">Cargando...</span>
                 ) : (
                   <span>
-                    Bienvenido/a:{" "}
+                    Profesor/a:{" "}
                     <span className="font-medium text-teal-600">
                       {profile.nombre || "Usuario"}
                     </span>
@@ -119,27 +116,25 @@ export default function ProfileHeader({
           </div>
         </div>
 
-        {/* Sección derecha: Info del perfil + Cerrar sesión */}
+        {/* Sección derecha: Badge de rol + Cerrar sesión */}
         <div className="flex items-center gap-4">
-          {/* Info adicional del perfil (opcional) */}
-          {!loading && profile.carrera && (
-            <div className="hidden md:flex items-center gap-2 text-sm text-gray-600">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
-              <span>{profile.carrera}</span>
-            </div>
-          )}
+          {/* Badge de profesor */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-full text-xs font-semibold">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
+            </svg>
+            <span>Profesor</span>
+          </div>
 
           {/* Botón de cerrar sesión */}
           <button

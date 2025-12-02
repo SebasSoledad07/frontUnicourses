@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import supabase from "../../utils/supabase";
-import Toast from "../Toast";
+import supabase from "../../../services/supabase";
+import Toast from "../../Toast";
 
 interface Curso {
   id: number;

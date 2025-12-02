@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import supabase from "../utils/supabase"; // Asegúrate de que la ruta sea correcta
+import type { UserRole } from "../types/roles";
+import { getCurrentSessionWithRole, signOut } from "../services/authService";
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  role: string | null;
-  login: (rol: string) => void;
+  role: UserRole | null;
+  login: (rol: UserRole) => void;
   logout: () => void;
 }
 
@@ -21,41 +22,26 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
 
-  const login = (rol: string) => {
+  const login = (rol: UserRole) => {
     setIsAuthenticated(true);
     setRole(rol);
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     setIsAuthenticated(false);
     setRole(null);
   };
 
-  // Verifica si hay sesión activa al cargar la app
   useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        // Opcional: podrías recuperar el rol del perfil aquí también
-        setIsAuthenticated(true);
-        const userId = session.user.id;
-
-        const { data: perfil } = await supabase
-          .from("perfiles")
-          .select("rol")
-          .eq("id", userId)
-          .single();
-
-        if (perfil?.rol) setRole(perfil.rol);
-      }
+    const init = async () => {
+      const { isAuthenticated, role } = await getCurrentSessionWithRole();
+      setIsAuthenticated(isAuthenticated);
+      setRole(role);
     };
-
-    checkSession();
+    init();
   }, []);
 
   return (

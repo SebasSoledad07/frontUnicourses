@@ -1,7 +1,7 @@
 /* eslint-disable */
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import DashIcon from "../icons/DashIcon";
+import DashIcon from "../../assets/icons/DashIcon";
 
 // Define the RoutesType interface
 export interface RoutesType {

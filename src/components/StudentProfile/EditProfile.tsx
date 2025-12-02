@@ -1,16 +1,11 @@
-// src/components/StudentProfile/EditarPerfil.tsx
 import { useEffect, useState, type KeyboardEvent } from "react";
-import supabase from "../../utils/supabase";
 import Toast from "../Toast";
-
-interface Perfil {
-  id: string;
-  nombre: string;
-  email: string;
-  bio?: string | null;
-  rol?: string | null;
-  intereses?: string[] | null;
-}
+import {
+  getCurrentProfile,
+  updateProfile,
+  type Perfil,
+} from "../../services/profileService";
+import { updateAuthEmailIfChanged } from "../../services/authService";
 
 interface ToastMessage {
   type: "success" | "error" | "warning" | "info";
@@ -28,48 +23,33 @@ export default function EditarPerfil() {
   const [guardando, setGuardando] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
+  const cargarPerfil = async () => {
+    setLoading(true);
+    try {
+      const p = await getCurrentProfile();
+      if (!p) {
+        setToast({
+          type: "error",
+          message: "Debes iniciar sesión para editar tu perfil",
+        });
+      } else {
+        setPerfil(p);
+        setNombre(p.nombre ?? "");
+        setEmail(p.email ?? "");
+        setBio(p.bio ?? "");
+        setIntereses(Array.isArray(p.intereses) ? p.intereses : []);
+      }
+    } catch (err) {
+      console.error(err);
+      setToast({ type: "error", message: "Error al cargar perfil" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     cargarPerfil();
   }, []);
-
-  const cargarPerfil = async () => {
-    setLoading(true);
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      setToast({
-        type: "error",
-        message: "Debes iniciar sesión para editar tu perfil",
-      });
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("perfiles")
-      .select("id, nombre, email, bio, rol, intereses")
-      .eq("id", auth.user.id)
-      .maybeSingle();
-
-    if (error) {
-      setToast({ type: "error", message: "Error al cargar perfil" });
-    } else if (data) {
-      const p = data as Perfil;
-      setPerfil(p);
-      setNombre(p.nombre || "");
-      setEmail(p.email || auth.user.email || "");
-      setBio(p.bio || "");
-      setIntereses(Array.isArray(p.intereses) ? p.intereses : []);
-    }
-    setLoading(false);
-  };
-
-  const actualizarEmailAuthSiCambio = async (nuevoEmail: string) => {
-    const { data: auth } = await supabase.auth.getUser();
-    const actual = auth.user?.email;
-    if (!actual || actual.toLowerCase() === nuevoEmail.toLowerCase()) return;
-    const { error } = await supabase.auth.updateUser({ email: nuevoEmail });
-    if (error) throw new Error(error.message);
-  };
 
   const handleAddInteres = () => {
     const v = inputInteres.trim();
@@ -108,20 +88,15 @@ export default function EditarPerfil() {
 
     setGuardando(true);
     try {
-      const { error: upError } = await supabase
-        .from("perfiles")
-        .update({
-          nombre: nombre.trim(),
-          email: email.trim(),
-          bio: bio.trim() || null,
-          intereses: intereses, // text[]
-        })
-        .eq("id", perfil.id);
-
-      if (upError) throw new Error(upError.message);
+      await updateProfile(perfil.id, {
+        nombre: nombre.trim(),
+        email: email.trim(),
+        bio: bio.trim() || null,
+        intereses,
+      });
 
       try {
-        await actualizarEmailAuthSiCambio(email.trim());
+        await updateAuthEmailIfChanged(email.trim());
       } catch {
         setToast({
           type: "info",
@@ -131,8 +106,10 @@ export default function EditarPerfil() {
       }
 
       setToast({ type: "success", message: "Perfil actualizado exitosamente" });
+
       await cargarPerfil();
     } catch (err: any) {
+      console.error(err);
       setToast({
         type: "error",
         message:

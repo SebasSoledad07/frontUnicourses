@@ -1,22 +1,11 @@
-// src/components/StudentProfile/PerfilView.tsx
 import { useEffect, useState } from "react";
-import supabase from "../../utils/supabase";
 import Toast from "../Toast";
-
-interface Perfil {
-  id: string;
-  nombre: string;
-  email: string;
-  bio?: string | null;
-  rol?: string | null;
-  intereses?: string[] | null;
-}
-
-interface CursoLite {
-  id: number;
-  nombre: string;
-  categoria?: string | null;
-}
+import {
+  getCurrentProfile,
+  getEnrolledCourses,
+  type Perfil,
+  type CursoLite,
+} from "../../services/profileService";
 
 interface ToastMessage {
   type: "success" | "error" | "warning" | "info";
@@ -30,50 +19,33 @@ export default function PerfilView() {
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
   useEffect(() => {
-    (async () => {
+    const cargar = async () => {
       setLoading(true);
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) {
-        setToast({
-          type: "error",
-          message: "Debes iniciar sesión para ver tu perfil",
-        });
-        setLoading(false);
-        return;
-      }
-
-      const { data: p, error: pErr } = await supabase
-        .from("perfiles")
-        .select("id, nombre, email, bio, rol, intereses")
-        .eq("id", auth.user.id)
-        .maybeSingle();
-
-      if (pErr) {
+      try {
+        const p = await getCurrentProfile();
+        if (!p) {
+          setToast({
+            type: "error",
+            message: "Debes iniciar sesión para ver tu perfil",
+          });
+          setPerfil(null);
+          setMatriculados([]);
+        } else {
+          setPerfil(p);
+          const cursos = await getEnrolledCourses();
+          setMatriculados(cursos);
+        }
+      } catch (err) {
+        console.error(err);
         setToast({ type: "error", message: "Error al cargar perfil" });
-        setLoading(false);
-        return;
-      }
-      setPerfil(p as Perfil);
-
-      const { data: m } = await supabase
-        .from("matriculas")
-        .select("curso_id")
-        .eq("perfil_id", auth.user.id);
-
-      const ids = (m || []).map((x) => x.curso_id);
-      if (ids.length > 0) {
-        const { data: cursos } = await supabase
-          .from("cursos")
-          .select("id, nombre, categoria")
-          .in("id", ids)
-          .order("nombre");
-        setMatriculados((cursos || []) as CursoLite[]);
-      } else {
+        setPerfil(null);
         setMatriculados([]);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setLoading(false);
-    })();
+    cargar();
   }, []);
 
   if (loading) {
