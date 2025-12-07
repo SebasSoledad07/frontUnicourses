@@ -19,6 +19,7 @@ export default function CourseStudentsView() {
   const [students, setStudents] = useState<CourseStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function CourseStudentsView() {
     try {
       const data = await getCourseStudents(cursoId);
       setStudents(data);
+      console.log("Estudiantes cargados:", data);
     } catch (err) {
       console.error(err);
       setToast({
@@ -215,6 +217,20 @@ export default function CourseStudentsView() {
                     </td>
                     <td className="px-4 py-4 text-gray-700">
                       {student.carrera || "N/A"}
+                    </td>
+
+                    {/* COLUMNA AGREGADA: Fecha de matrícula */}
+                    <td className="px-4 py-4 text-gray-700">
+                      {student.fecha_matricula
+                        ? new Date(student.fecha_matricula).toLocaleDateString(
+                            "es-ES",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            }
+                          )
+                        : "N/A"}
                     </td>
 
                     <td className="px-4 py-4 text-right space-x-2">

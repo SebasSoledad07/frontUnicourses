@@ -13,6 +13,7 @@ export interface TeacherCourse {
 }
 
 export interface CourseStudent {
+  fecha_matricula: any;
   id: string;
   nombre: string;
   email: string;
